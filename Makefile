@@ -14,10 +14,10 @@ define Package/$(PKG_NAME)
   SECTION:=lang
   CATEGORY:=Languages
   TITLE:=OTB tracker
-  DEPENDS:=+python-light +python-logging 
+  DEPENDS:=+python-light +python-logging
 endef
 
-define Package/python-swconfig-otb/description
+define Package/$(PKG_NAME)/description
 	A python module to track OTB connections
 endef
 
