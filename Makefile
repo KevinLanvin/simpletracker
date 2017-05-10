@@ -9,7 +9,7 @@ PKG_LICENSE:=MIT
 include $(INCLUDE_DIR)/package.mk
 $(call include_mk, python-package.mk)
 
-define Package/${PKG_NAME}
+define Package/$(PKG_NAME)
   SUBMENU:=Python
   SECTION:=lang
   CATEGORY:=Languages
@@ -31,7 +31,7 @@ define Build/Compile
 	)
 endef
 
-define Package/${PKG_NAME}/install
+define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)$(PYTHON_PKG_DIR)
 	$(CP) $(PKG_INSTALL_DIR)$(PYTHON_PKG_DIR)/* $(1)$(PYTHON_PKG_DIR)
 
@@ -39,4 +39,4 @@ define Package/${PKG_NAME}/install
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/simpletracker.py $(1)/usr/bin/tracker
 endef
 
-$(eval $(call BuildPackage,${PKG_NAME}))
+$(eval $(call BuildPackage,$(PKG_NAME)))
