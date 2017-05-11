@@ -26,16 +26,9 @@ define Build/Prepare
 endef
 
 define Build/Compile
-	$(call Build/Compile/PyMod,, \
-		install --no-compile --prefix="/usr" --root=$(PKG_INSTALL_DIR), \
-	)
 endef
 
 define Package/$(PKG_NAME)/install
-	$(INSTALL_DIR) $(1)$(PYTHON_PKG_DIR)
-	$(CP) $(PKG_INSTALL_DIR)$(PYTHON_PKG_DIR)/* $(1)$(PYTHON_PKG_DIR)
-
-	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/simpletracker.py $(1)/usr/bin/tracker
 endef
 
