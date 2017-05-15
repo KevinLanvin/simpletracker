@@ -2,31 +2,30 @@
 import sys
 import os
 import socket
+import logger
+from logging.handlers import RotatingFileHandler
 
 def ping(address):
     return os.WEXITSTATUS(os.system("ping -c 1 -w 2 " + address + " > /dev/null 2>&1"))
 
+def track_ICMP(address):
+    while true :
+        response = ping(address)
+        if response != 0 :
+            logger.error("Host unreachable : "+address)
+            return
 
-def set_keepalive(sock, after_idle_sec=1, interval_sec=3, max_fails=5):
-    """Set TCP keepalive on an open socket.
-
-    It activates after 1 second (after_idle_sec) of idleness,
-    then sends a keepalive ping once every 3 seconds (interval_sec),
-    and closes the connection after 5 failed ping (max_fails), or 15 seconds
-    """
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, after_idle_sec)
-    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, interval_sec)
-    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, max_fails)
-
-# Main
-"""
+##### Main
+### Init
+# Init logger
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
+file_handler = RotatingFileHandler('activity.log', 'a', 1000000, 1)
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+# Init address
 address = sys.argv[1]
-while true :
-    response = ping(address)
-    if response != 0 :
-        print("Host unreachable : " + address)
-        sys.exit(response)
-
-"""
-print("hello")
+# Main loop
+track_ICMP(address)
