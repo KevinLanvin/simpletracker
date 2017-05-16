@@ -3,16 +3,30 @@ import sys
 import os
 import socket
 import time
+import timeit
 import logging
 from logging.handlers import RotatingFileHandler
 import dns.resolver
+import socket
+from scapy.all import * 
+
+
+
+
 
 ##### ICMP Tracker
 
-# Ping sends an ICMP message to <address> and awaits a response before <timeout> seconds.
-# Returns the exit status of ping command.
-def ping(address, timeout):
-    return os.WEXITSTATUS(os.system("ping -c 1 -w " + timeout + " " + address + " > /dev/null 2>&1"))
+# Ping sends an ICMP message to <address> through the <interface> and awaits a response before <timeout> seconds.
+# Returns the latency or -1 if no answer has been received before timeout occured.
+def ping(address, interface, timeout = 2):
+    packet = Ether()/IP(dst=address)/ICMP()
+    ans, unans = srp(packet, timeout=timeout, iface=interface, filter='icmp', verbose=0)
+    t1 = ans[0][1].time
+    t2 = ans[0][0].sent_time
+    if ans is None: 
+        return -1
+    else:
+        return (t1-t2)*1000
 
 # track_ICMP starts tracking <address> using ping method. It calls the ping method every <interval> seconds with <adress> and <timeout> as arguments
 # Triggers an error when a ping fails
@@ -51,10 +65,12 @@ file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 # Init address
-#address = sys.argv[1]
+address = sys.argv[1]
+interface = sys.argv[2]
+print(ping(address,interface))
 # Init DNS config
-dns_resolver = dns.resolver.Resolver()
-dns_resolver.nameservers = ['208.67.222.222','208.67.220.220']
+#dns_resolver = dns.resolver.Resolver()
+#dns_resolver.nameservers = ['208.67.222.222','208.67.220.220']
 # Main loop
-answer = get_public_IP("147.135.134.1")
-print(answer)
+#answer = get_public_IP("147.135.134.1")
+
