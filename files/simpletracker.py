@@ -21,7 +21,7 @@ def ping(address, iface, timeout = 2):
     except socket.error:
         logger.error("Interface " + iface + " does not exist.")
         return -1
-    if unans is not None: 
+    if unans: 
         return 0
     t1 = ans[0][1].time
     t2 = ans[0][0].sent_time
@@ -84,6 +84,7 @@ logger.addHandler(file_handler)
 address = sys.argv[1]
 interface = sys.argv[2]
 print(get_public_ip(interface))
+print(ping(address,interface))
 # Init DNS config
 #dns_resolver = dns.resolver.Resolver()
 #dns_resolver.nameservers = ['208.67.222.222','208.67.220.220']
