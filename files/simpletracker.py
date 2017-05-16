@@ -1,13 +1,9 @@
 #!/usr/bin/python
 import sys
 import os
-import socket
 import time
-import timeit
 import logging
 from logging.handlers import RotatingFileHandler
-import dns.resolver
-import socket
 from scapy.all import * 
 
 
@@ -18,41 +14,61 @@ from scapy.all import *
 
 # Ping sends an ICMP message to <address> through the <interface> and awaits a response before <timeout> seconds.
 # Returns the latency or -1 if no answer has been received before timeout occured.
-def ping(address, interface, timeout = 2):
+def ping(address, iface, timeout = 2):
     packet = Ether()/IP(dst=address)/ICMP()
-    ans, unans = srp(packet, timeout=timeout, iface=interface, filter='icmp', verbose=0)
+    try:
+        ans,unans = srp(packet, timeout=timeout, iface=iface, filter='icmp', verbose=0)
+    except socket.error:
+        logger.error("Interface " + iface + " does not exist.")
+        return -1
+    if unans is not None: 
+        return 0
     t1 = ans[0][1].time
     t2 = ans[0][0].sent_time
-    if ans is None: 
-        return -1
-    else:
-        return (t1-t2)*1000
+    return (t1-t2)*1000
 
-# track_ICMP starts tracking <address> using ping method. It calls the ping method every <interval> seconds with <adress> and <timeout> as arguments
+
+# track_ICMP starts tracking <address> using ping method. It calls the ping method every <interval> seconds with <adress> , <iface> and <timeout> as arguments
 # Triggers an error when a ping fails
-def track_ICMP(address, timeout="2", interval="2"):
+def track_ICMP(address, iface, timeout=2, interval=2):
     while 1 :
-        response = ping(address, timeout)
-        if response != 0 :
-            logger.error("Host unreachable : " + address)
+        response = ping(address, iface, timeout)
+        if response <= 0 :
+            logger.error("Host unreachable : " + address + "through interface " + iface)
         time.sleep(float(interval))
+
+
 
 
 
 
 ##### UDP Tracker (using DNS)
 # send_dns_request sends a DNS query to its registered nameservers for the <domain> domain through the interface with <source> ip
-# Returns a dns.Answer object
-def send_dns_request(domain,source):
-    return dns_resolver.query(domain,source=source) 
+# Returns a scapy dns response
+def send_dns_request(domain, iface, timeout=2):
+    # !!!!! TODO : change the hardcoded opendns address !!!!!
+    try:
+        ans,unans = srp(Ether()/IP(dst="208.67.222.222")/UDP()/DNS(rd=1,qd=DNSQR(qname=domain)),timeout=timeout, iface=iface, verbose=0)
+    except socket.error:
+        logger.error("Interface " + iface + " does not exist.")
+        return -1
+    if unans:
+        logger.error("Cannot resolve domain " + domain + " on interface " + iface)
+        return 0
+    return ans
+
 
 # get_public_IP uses send_dns_request to send a query for the domain "myip.opendns.com" through the interface with <source> ip. 
 # It then extracts the ip address from the answer
 # Returns a string containing the public ip.
-def get_public_IP(source):
-        response = send_dns_request("myip.opendns.com",source)
-        public_ip = response.response.answer[0].to_text().split(' ')[4]
-        return public_ip
+def get_public_ip(iface):
+        response = send_dns_request("myip.opendns.com",iface)
+        return response[0][1][5].rdata
+
+
+
+
+
 
 ##### Main
 ### Init
@@ -67,10 +83,10 @@ logger.addHandler(file_handler)
 # Init address
 address = sys.argv[1]
 interface = sys.argv[2]
-print(ping(address,interface))
+print(get_public_ip(interface))
 # Init DNS config
 #dns_resolver = dns.resolver.Resolver()
 #dns_resolver.nameservers = ['208.67.222.222','208.67.220.220']
 # Main loop
-#answer = get_public_IP("147.135.134.1")
+
 
