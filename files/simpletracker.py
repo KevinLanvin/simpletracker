@@ -15,14 +15,19 @@ from scapy.all import *
 # Ping sends an ICMP message to <address> through the <interface> and awaits a response before <timeout> seconds.
 # Returns the latency or -1 if no answer has been received before timeout occured.
 def ping(address, iface, timeout = 2):
-    packet = Ether()/IP(dst=address)/ICMP()
+    conf.iface = iface
+    data = '00000000000000000000000000000000000000000000000000000000'
+    packet = IP(dst=address)/ICMP()/data
     try:
-        ans,unans = srp(packet, timeout=timeout, iface=iface, filter='icmp', verbose=0)
-    except socket.error:
-        logger.error("Interface " + iface + " does not exist.")
+        ans,unans= sr(packet, timeout=timeout, iface=iface, filter='icmp', verbose=0)
+    except socket.error as e:
+        print(e)
         return -1
     if unans: 
+        print("No answer")
         return 0
+    print(ans[0][1].time)
+    print(ans[0][0].sent_time)
     t1 = ans[0][1].time
     t2 = ans[0][0].sent_time
     return (t1-t2)*1000
@@ -49,8 +54,9 @@ def send_dns_request(domain, iface, timeout=2):
     # !!!!! TODO : change the hardcoded opendns address !!!!!
     try:
         ans,unans = srp(Ether()/IP(dst="208.67.222.222")/UDP()/DNS(rd=1,qd=DNSQR(qname=domain)),timeout=timeout, iface=iface, verbose=0)
-    except socket.error:
+    except socket.error as e:
         logger.error("Interface " + iface + " does not exist.")
+        print(e)
         return -1
     if unans:
         logger.error("Cannot resolve domain " + domain + " on interface " + iface)
@@ -83,7 +89,8 @@ logger.addHandler(file_handler)
 # Init address
 address = sys.argv[1]
 interface = sys.argv[2]
-print(get_public_ip(interface))
+#print(get_public_ip(interface))
+conf.sniff_promisc = 0
 print(ping(address,interface))
 # Init DNS config
 #dns_resolver = dns.resolver.Resolver()
