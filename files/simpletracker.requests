@@ -1,9 +1,10 @@
 #!/bin/bash
+# WARNING : Make sure you already called init() function in simpletracker.init before using these methods
 
 #$1=<interface>
 _get_interface_ip() {
-	ip addr show "$1" | grep -w inet | awk '{print $2}' | cut -d / -f 1
-}
+	ip -f inet addr show "$1" | grep -Po 'inet \K[\d.]+'
+ }
 
 
 
@@ -33,4 +34,12 @@ ping_request() {
 	fi
 }
 
-
+is_up() {
+	local tmp
+	tmp=$( ip link show "$1" | grep "state UP" )
+	if [ $? != 0 ]; then
+		echo "$ERROR_CODE"
+	else
+		echo "$OK_CODE"
+	fi
+}

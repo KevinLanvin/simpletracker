@@ -20,12 +20,11 @@ _UCI_GET_DNS() {
 }
 
 
-# Initialization
+# UCI initialization
 _init_uci_config() {
 	_init_uci_config_ping
 	_init_uci_config_dns
 }
-
 
 _init_uci_config_ping() {
 	ping_interfaces=$( _UCI_GET_PING "interfaces" )
@@ -42,7 +41,15 @@ _init_uci_config_dns() {
 	dns_enable=$( _UCI_GET_DNS "enable" )
 }
 
+
+# infos file system initialization
+_init_file_system() {
+	mkdir -p /tmp/simpletracker/interfaces
+	infos="/tmp/simpletracker/interfaces"
+}
+
 init() {
 	_init_uci_config
+	_init_file_system
 }
 

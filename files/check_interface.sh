@@ -77,12 +77,10 @@ _check_dns_interface() {
 # $1=<interface> , $2=<resolver> , $3=<domain> , $4=<timeout>
 _check_dns_interface_with_resolver() {
         local result=$( dns_request "$1" "$2" "$3" "$4" )
-	log "Result : $result"
         if [ "$result" == "$ERROR_CODE" ]; then
                 log "DNS $1 : Failure. Resolver: $2. Domain: $3. Timeout: $4."
                 echo "$ERROR_CODE"
         else    
-		echo "Result : $result" 1>&2
                 log "DNS '$1' : Latency: '$( echo "$result" | tail -n 1 )' ms. Public IP: '$( echo "$result" | head -n 1 )'."
                 echo "$OK_CODE"
         fi      
@@ -93,18 +91,32 @@ _check_dns_interface_with_resolver() {
 # $1=<interface>
 # Dispatch between dns and ping method to check
 check_interface() {
-	if [ -z "$method" ];then
+	local path="$infos/$1"
+	mkdir -p "$path"
+	# check if interface is up
+	local up=$( is_up "$1" )
+	if [ "$up" == "$ERROR_CODE" ]; then
+		rm -f "${path}/*"
+		echo DOWN > "${path}/state"
+		log "Interface $1 is down."
+		exit 1
+	else
+		echo UP > "${path}/state"
+	fi	
+	# select method to check connectivity
+	if [ -z "$method" ]; then
 		if [ "$dns_enable" == "$ENABLED" ]; then
 			method="dns"
 		elif [ "$ping_enable" == "$ENABLED" ]; then
 			method="ping"
 		else
 			log "No method selected to check '$1'"
-			return -1	
+			exit 1	
 		fi
 	fi
+	# check connectivity using selected method
 	local result
-	if [ "$method" == "dns" ];then
+	if [ "$method" == "dns" ]; then
 		result=$( _check_dns_interface "$1" )
 	elif [ "$method" == "ping" ]; then
 		result=$( _check_ping_interface "$1")
@@ -112,7 +124,10 @@ check_interface() {
 		log "Method passed as argument is incorrect. Must be ping or dns."
 		result="$ERROR_CODE"
 	fi
-	echo Interface "$1" : "$result"
+	if [ "$result" == "$ERROR_CODE" ]; then
+		log "Interface $1 can not reach network."
+		exit 2
+	fi
 }
 init
 check_interface "$1" 
