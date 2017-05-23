@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# Constants
+readonly OK_CODE="0"
+readonly ERROR_CODE="-1"
+readonly ENABLED="1"
+
+
+
+
+# UCI Macros
+_UCI_GET() {
+	uci get simpletracker."$1"
+}
+_UCI_GET_PING() {
+	_UCI_GET "ping.""$1"
+}
+_UCI_GET_DNS() {
+	_UCI_GET "dns.""$1"
+}
+
+
+# Initialization
+_init_uci_config() {
+	_init_uci_config_ping
+	_init_uci_config_dns
+}
+
+
+_init_uci_config_ping() {
+	ping_interfaces=$( _UCI_GET_PING "interfaces" )
+	ping_destinations=$( _UCI_GET_PING "destinations" )
+	ping_timeout=$( _UCI_GET_PING "timeout" )
+	ping_enable=$( _UCI_GET_PING "enable" )
+}
+
+_init_uci_config_dns() {
+	dns_resolvers=$( _UCI_GET_DNS "resolvers" )
+	dns_timeout=$( _UCI_GET_DNS "timeout" )
+	dns_domain=$( _UCI_GET_DNS "domain" )
+	dns_interfaces=$( _UCI_GET_DNS "interfaces" )
+	dns_enable=$( _UCI_GET_DNS "enable" )
+}
+
+init() {
+	_init_uci_config
+}
+
