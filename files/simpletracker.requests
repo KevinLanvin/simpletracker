@@ -9,10 +9,15 @@ _get_interface_ip() {
 
 # $1=<interface> , $2=<resolver_address> , $3=<domain> , $4=<timeout> 
 dns_request() {
-	local interface_ip=$( get_interface_ip "$1" )
-	local response=$( dig -b "$interface_ip" "$3" @"$2" +time="$4" +noall +answer +stats )
-	echo "$response" | grep -v ';' | cut -f 5
-	echo "$response" | grep msec | cut -d ' ' -f 4
+	local interface_ip=$( _get_interface_ip "$1" )
+	local response
+	response=$( dig -b "$interface_ip" "$3" @"$2" +time="$4" +noall +answer +stats )
+	if [ $? != 0 ]; then 
+		echo "$ERROR_CODE"
+	else
+		echo "$response" | grep -v ';' | cut -f 5 | tail -n 1
+		echo "$response" | grep msec | cut -d ' ' -f 4
+	fi
 }
 
 

@@ -48,13 +48,47 @@ _check_ping_interface() {
 _check_ping_interface_for_destination() {
 	local result=$( ping_request "$2" "$1" "$3" )
 	if [ "$result" == "$ERROR_CODE" ]; then
-		log "Ping '$1' : Failure. Dst: '$2'. Timeout: '$3'"
+		log "Ping $1 : Failure. Dst: $2. Timeout: $3"
 		echo "$ERROR_CODE"
 	else
-		log "Ping '$1' : '$result' ms."
+		log "Ping $1 : $result ms."
 		echo "$OK_CODE"
 	fi
 }
+
+
+
+# $1=<interface>
+_check_dns_interface() {
+        if [ -z "$timeout" ]; then
+                timeout="$dns_timeout"
+        fi      
+        for resolver in $dns_resolvers; do
+                local result=$( _check_dns_interface_with_resolver "$1" "$resolver" "myip.opendns.com" "$timeout" )
+                if [ "$result" == "$OK_CODE" ]; then
+                        echo "$OK_CODE"
+                        return
+                fi      
+        done    
+        log "Network unreachable on interface '$1' with dns method."
+        echo "$ERROR_CODE" 
+}
+
+# $1=<interface> , $2=<resolver> , $3=<domain> , $4=<timeout>
+_check_dns_interface_with_resolver() {
+        local result=$( dns_request "$1" "$2" "$3" "$4" )
+	log "Result : $result"
+        if [ "$result" == "$ERROR_CODE" ]; then
+                log "DNS $1 : Failure. Resolver: $2. Domain: $3. Timeout: $4."
+                echo "$ERROR_CODE"
+        else    
+		echo "Result : $result" 1>&2
+                log "DNS '$1' : Latency: '$( echo "$result" | tail -n 1 )' ms. Public IP: '$( echo "$result" | head -n 1 )'."
+                echo "$OK_CODE"
+        fi      
+}       
+
+
 
 # $1=<interface>
 # Dispatch between dns and ping method to check
