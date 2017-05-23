@@ -52,6 +52,7 @@ _check_ping_interface_for_destination() {
 		echo "$ERROR_CODE"
 	else
 		log "Ping $1 : $result ms."
+		echo "$result" > "${path}/latency"
 		echo "$OK_CODE"
 	fi
 }
@@ -81,7 +82,11 @@ _check_dns_interface_with_resolver() {
                 log "DNS $1 : Failure. Resolver: $2. Domain: $3. Timeout: $4."
                 echo "$ERROR_CODE"
         else    
-                log "DNS '$1' : Latency: '$( echo "$result" | tail -n 1 )' ms. Public IP: '$( echo "$result" | head -n 1 )'."
+		local latency=$( echo "$result" | tail -n 1 )
+		local pub_ip=$( echo "$result" | head -n 1 )
+                log "DNS '$1' : Latency: $latency ms. Public IP: ${pub_ip}."
+		echo "$latency" > "${path}/latency"
+		echo "$pub_ip" > "${path}/public_ip"
                 echo "$OK_CODE"
         fi      
 }       
@@ -91,7 +96,7 @@ _check_dns_interface_with_resolver() {
 # $1=<interface>
 # Dispatch between dns and ping method to check
 check_interface() {
-	local path="$infos/$1"
+	path="$infos/$1"
 	mkdir -p "$path"
 	# check if interface is up
 	local up=$( is_up "$1" )
