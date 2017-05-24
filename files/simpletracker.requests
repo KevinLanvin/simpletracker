@@ -1,10 +1,11 @@
-#!/bin/bash
+#!/bin/sh
+# vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 # WARNING : Make sure you already called init() function in simpletracker.init before using these methods
 
 #$1=<interface>
 _get_interface_ip() {
 	ip -f inet addr show "$1" | grep -Po 'inet \K[\d.]+'
- }
+}
 
 
 
@@ -35,8 +36,7 @@ ping_request() {
 }
 
 is_up() {
-	local tmp
-	tmp=$( ip link show "$1" | grep "state UP" )
+	ip link show "$1" | grep "state UP" > /dev/null
 	if [ $? != 0 ]; then
 		echo "$ERROR_CODE"
 	else
