@@ -27,11 +27,21 @@ done
 shift $((OPTIND - 1))
 [ -z "$1" ] && usage
 
+# select method to check connectivity
+if [ -z "$method" ]; then
+	[ "$ping_enable" = "$ENABLED" ] && method="ping"
+	[ "$dns_enable" = "$ENABLED" ] && method="dns"
+fi
+[ "$method" != "ping" ] && [ "$method" != "dns" ] && log "Invalid tracking method"; exit 1
+
+# set timeout
+[ -z "$timeout" ] && [ "$method" = "dns" ] && timeout="$dns_timeout"
+[ -z "$timeout" ] && [ "$method" = "ping" ] && timeout="$ping_timeout"
+
+
 # $1=<interface> , $2=<timeout>
 # Calls check_ping_interface_for_destination until one destination answers. If no destinations answers, return Error code
 _check_ping_interface() {
-	[ -z "$timeout" ] && timeout="$ping_timeout"
-
 	for destination in $ping_destinations; do
 		local result=$( _check_ping_interface_for_destination "$1" "$destination" "$timeout")
 		if [ "$result" = "$OK_CODE" ];then
@@ -62,9 +72,6 @@ _check_ping_interface_for_destination() {
 
 # $1=<interface>
 _check_dns_interface() {
-	if [ -z "$timeout" ]; then
-		timeout="$dns_timeout"
-	fi      
 	for resolver in $dns_resolvers; do
 		local result=$( _check_dns_interface_with_resolver "$1" "$resolver" "myip.opendns.com" "$timeout" )
 		if [ "$result" = "$OK_CODE" ]; then
@@ -109,18 +116,7 @@ check_interface() {
 	else
 		echo UP > "${path}/state"
 	fi	
-	# select method to check connectivity
-	if [ -z "$method" ]; then
-		if [ "$dns_enable" = "$ENABLED" ]; then
-			method="dns"
-		elif [ "$ping_enable" = "$ENABLED" ]; then
-			method="ping"
-		else
-			log "No method selected to check '$1'"
-			exit 1	
-		fi
-	fi
-	# check connectivity using selected method
+		# check connectivity using selected method
 	local result
 	if [ "$method" = "dns" ]; then
 		result=$( _check_dns_interface "$1" )
