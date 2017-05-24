@@ -12,12 +12,13 @@ readonly ENABLED="1"
 
 # UCI initialization
 _init_uci_config() {
+	config_load simpletracker
 	_init_uci_config_ping
 	_init_uci_config_dns
 }
 
 _init_uci_config_ping() {
-	local section="simpletracker.ping"
+	local section="ping"
 	config_get ping_interfaces "$section" "interfaces"
 	config_get ping_destinations "$section" "destinations"
 	config_get ping_timeout "$section" "timeout"
@@ -25,7 +26,7 @@ _init_uci_config_ping() {
 }
 
 _init_uci_config_dns() {
-	local section="simpletracker.dns"
+	local section="dns"
 	config_get dns_resolvers "$section" "resolvers"
 	config_get dns_timeout "$section" "timeout"
 	config_get dns_domain "$section" "domain"
