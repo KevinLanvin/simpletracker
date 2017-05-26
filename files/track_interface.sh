@@ -2,7 +2,6 @@
 # vim: set noexpandtab tabstop=4 shiftwidth=4 softtabstop=4 :
 
 name=$0
-basename=$( basename "$0" )
 
 usage() {
 	printf "Usage : %s: [-m METHOD] [-t TIMEOUT] INTERFACE\n" "$name"
@@ -10,7 +9,7 @@ usage() {
 }
 
 log() {
-	logger -p user.notice -s -t "$basename" "$@"
+	logger -p user.notice -s -t "simpletracker" "$@"
 }
 
 . ./simpletracker.init
@@ -27,12 +26,14 @@ done
 shift $((OPTIND - 1))
 [ -z "$1" ] && usage
 
+init
+
 # select method to check connectivity
 if [ -z "$method" ]; then
 	[ "$ping_enable" = "$ENABLED" ] && method="ping"
 	[ "$dns_enable" = "$ENABLED" ] && method="dns"
 fi
-[ "$method" != "ping" ] && [ "$method" != "dns" ] && log "Invalid tracking method"; exit 1
+[ "$method" != "ping" ] && [ "$method" != "dns" ] && log "Invalid tracking method $method" && exit 1
 
 # set timeout
 [ -z "$timeout" ] && [ "$method" = "dns" ] && timeout="$dns_timeout"
@@ -90,8 +91,14 @@ _check_dns_interface_with_resolver() {
 		log "DNS $1 : Failure. Resolver: $2. Domain: $3. Timeout: $4."
 		echo "$ERROR_CODE"
 	else    
-		local latency=$( echo "$result" | tail -n 1 )
-		local pub_ip=$( echo "$result" | head -n 1 )
+		local i=0
+		local latency
+		local pub_ip
+		for var in $result; do
+			[ $i = 0 ] && pub_ip=$var
+			[ $i = 1 ] && latency=$var
+			i=$(( i+1 ))
+		done
 		log "DNS '$1' : Latency: $latency ms. Public IP: ${pub_ip}."
 		echo "$latency" > "${path}/latency"
 		echo "$pub_ip" > "${path}/public_ip"
@@ -108,15 +115,10 @@ check_interface() {
 	mkdir -p "$path"
 	# check if interface is up
 	local up=$( is_up "$1" )
-	if [ "$up" = "$ERROR_CODE" ]; then
-		rm "${path}/*"
-		echo DOWN > "${path}/state"
-		log "Interface $1 is down."
-		exit 1
-	else
-		echo UP > "${path}/state"
-	fi	
-		# check connectivity using selected method
+	[ "$up" = "$ERROR_CODE" ] && log "Error while using ubus call on interface '$1'" && exit 1
+	[ "$up" = "false" ] && rm "${path}"/* && echo DOWN > "${path}/state" && log "Interface $1 is down." && exit 0
+	[ "$up" = "true" ] && echo UP > "${path}/state"	
+	# check connectivity using selected method
 	local result
 	if [ "$method" = "dns" ]; then
 		result=$( _check_dns_interface "$1" )
@@ -131,5 +133,4 @@ check_interface() {
 		exit 2
 	fi
 }
-init
 check_interface "$1" 
